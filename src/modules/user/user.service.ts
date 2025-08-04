@@ -10,6 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UpdateuserDto } from './dto/update-user.dto';
+import { UserListDto } from './dto/list-user.dto';
 
 @Injectable()
 export class UserService {
@@ -84,5 +85,56 @@ export class UserService {
       }
       throw new HttpException('something went wrong', 500);
     }
+  }
+
+  async deleteUser(userId: string) {
+    const user = await this.userRepository.findOne({ where: { userId } });
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+    await this.userRepository.delete(userId);
+    return {
+      message: 'user deleted successfully',
+      userId: userId,
+    };
+  }
+
+  async getUserbyId(userId: string) {
+    const user = await this.userRepository.findOne({ where: { userId } });
+
+    if (!user) {
+      throw new NotFoundException('user not found');
+    }
+
+    const { password, ...userwithoutPassword } = user;
+    return userwithoutPassword;
+  }
+
+  async listAllUser(userListDto: UserListDto) {
+    const { search, limit, page, order, orderColumn } = userListDto;
+
+    const query = this.userRepository.createQueryBuilder('user');
+
+    if (search) {
+      query.where('user.name ILIKE :search OR user.email ILIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    if (orderColumn) {
+      query.orderBy(`user.${orderColumn}`, order ?? 'ASC');
+    }
+
+    query.skip((page - 1) * limit).take(limit);
+
+    const [data, total] = await query.getManyAndCount();
+
+    // Optional: remove passwords from output
+    const result = data.map(({ password, ...rest }) => rest);
+
+    return {
+      data: result,
+      total,
+    };
   }
 }
