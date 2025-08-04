@@ -1,4 +1,11 @@
-import { Body, Controller, Param, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from 'src/common/entities/user.entity';
@@ -13,11 +20,12 @@ export class UserController {
     return this.userService.createUser(createUserDto);
   }
 
-  @Put('update-user/:userid')
+  @Put('update-user/:userId')
   async updateUser(
-    @Param('userId') userId: string,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
     @Body() updateuserDto: UpdateuserDto,
-  ) {
+  ): Promise<Partial<User>> {
+    console.log(updateuserDto);
     return this.userService.updateUser(userId, updateuserDto);
   }
 }
